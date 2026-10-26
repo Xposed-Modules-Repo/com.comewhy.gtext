@@ -1,0 +1,34 @@
+
+name: Sync Xposed Modules Repo
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Sync to Xposed Modules Repo
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          git remote add mirror \
+            "https://x-access-token:${MIRROR_TOKEN}@github.com/Xposed-Modules-Repo/com.comewhy.gtext.git"
+
+          git push mirror --all
+          git push mirror --tags
