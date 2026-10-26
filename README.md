@@ -241,7 +241,6 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 
 <div align="center">
 
-**作者：[闪退哥（酷安）](https://www.coolapk.com/u/5628726)**
 
 **如果这个项目对你有帮助，请给一个 ⭐ Star 支持一下！**
 
