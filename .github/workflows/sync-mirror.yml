@@ -7,13 +7,15 @@ on:
       - main
     tags:
       - '*'
+  release:
+    types: [published, edited]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  sync:
+  sync-files:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,12 +25,57 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Sync to Xposed Modules Repo
+      - name: Sync files and tags
         env:
           MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
         run: |
           git remote add mirror \
             "https://x-access-token:${MIRROR_TOKEN}@github.com/Xposed-Modules-Repo/com.comewhy.gtext.git"
 
-          git push mirror main --force
+          git push mirror HEAD:refs/heads/main --force
           git push mirror --tags --force
+
+  sync-release:
+    if: github.event_name == 'release'
+    needs: sync-files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download source release assets
+        env:
+          GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          mkdir -p release-assets
+
+          gh release download "${{ github.event.release.tag_name }}" \
+            --repo "${{ github.repository }}" \
+            --dir release-assets
+
+      - name: Copy release to mirror
+        env:
+          GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+          SOURCE_REPO: ${{ github.repository }}
+          TAG: ${{ github.event.release.tag_name }}
+          TARGET_REPO: Xposed-Modules-Repo/com.comewhy.gtext
+        run: |
+          TITLE=$(gh release view "$TAG" \
+            --repo "$SOURCE_REPO" --json name --jq '.name')
+
+          BODY=$(gh release view "$TAG" \
+            --repo "$SOURCE_REPO" --json body --jq '.body')
+
+          if gh release view "$TAG" --repo "$TARGET_REPO" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --repo "$TARGET_REPO" \
+              --title "$TITLE" \
+              --notes "$BODY"
+
+            gh release upload "$TAG" release-assets/* \
+              --repo "$TARGET_REPO" --clobber
+          else
+            gh release create "$TAG" release-assets/* \
+              --repo "$TARGET_REPO" \
+              --title "$TITLE" \
+              --notes "$BODY" \
+              --target main
+          fi
