@@ -21,6 +21,7 @@
 - [使用说明](#使用说明)
 - [进阶功能](#进阶功能)
 - [常见问题](#常见问题)
+- [数据同步机制](#数据同步机制)
 - [性能说明](#性能说明)
 - [法律风险与免责声明](#法律风险与免责声明)
 - [致谢](#致谢)
@@ -43,13 +44,12 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 | 🧩 **应用改名** | 替换桌面图标名称、应用内"关于"页等处的应用名 |
 | 🖥️ **系统界面** | 支持替换状态栏、设置等系统界面文字（配合作用域） |
 | 👆 **屏幕取词** | 无障碍悬浮取词：在目标应用中点选文字直接创建规则 |
-| 🧪 **替换测试** | 输入文本实时预览替换结果，无需去目标应用验证 |
-| 📊 **替换统计** | 各应用替换次数、最近替换样本实时回传展示 |
-| 🐞 **调试模式** | 记录"疑似未命中"的文字，回答"为什么没替换" |
+| 🧭 **替换范围** | 按类别控制每个应用参与替换的范围：文字界面 / 菜单弹窗 / 通知媒体 / H5 / 自绘 |
+| 🧠 **深度模式** | 额外覆盖资源字符串（Resources.getString）等深层入口，可随时关闭 |
+| 🧹 **批量操作** | 一键全部启用 / 全部停用 / 清理停用规则 / 清空规则 |
 | 🚫 **一键暂停** | 快捷设置磁贴暂停/恢复全部替换，几秒生效 |
 | 🔀 **优先级排序** | 长按拖拽调整规则顺序，控制先替换谁 |
 | 🔍 **拼音搜索** | 主页支持全拼/首字母搜索（搜 "jd" 找到"京东"） |
-| 📤 **规则分享** | 导出轻量 JSON 分享给朋友 |
 | 💾 **备份恢复** | 全部规则、改名与设置一键备份还原 |
 | 🔁 **重启应用** | Root 下重启桌面/系统界面等系统应用，无需重启手机 |
 | 🚫 **生效范围可控** | 单条规则开关、单应用总开关，全局规则只对已添加应用生效 |
@@ -68,8 +68,8 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 | 项目 | 要求 |
 |------|------|
 | Android | 14 ~ 17 |
-| Root | 已 Root（Magisk / KernelSU，**建议给 GText 授权 Root**，见[常见问题](#常见问题)） |
 | 框架 | LSPosed（libxposed **API 102**，对应 LSPosed 1.9.2+） |
+| Root | 非必需：规则同步优先走 LSPosed 官方服务通道；授权 Root 可启用 tmp 兜底写入与「重启该应用」功能（见[数据同步机制](#数据同步机制)） |
 
 ---
 
@@ -81,19 +81,23 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 
 | 分类 | 覆盖内容 |
 |------|---------|
-| **原生控件** | TextView / EditText（setText 四种重载、hint、append、setError）、Button、CheckBox、Switch、Chip 等子类 |
+| **原生控件** | TextView / EditText（setText 全部重载含 setTextKeepState、hint、append、setError）、Button、CheckBox、Switch、Chip 等子类 |
 | **标题栏** | Toolbar、ActionBar（含 AppCompat）、CollapsingToolbarLayout、Activity / Dialog 标题 |
-| **弹窗提示** | AlertDialog、MaterialAlertDialog、Snackbar、Toast、PopupMenu、Tooltip、列表弹窗 |
+| **弹窗提示** | AlertDialog、MaterialAlertDialog、Snackbar、Toast、PopupMenu、Tooltip |
+| **列表式弹窗** | AlertDialog.Builder.setItems / setSingleChoiceItems / setMultiChoiceItems 的选项条目 |
+| **菜单项** | MenuItem.setTitle 全系列、Menu.add(group,id,order,title)（下拉/悬浮/设置菜单文字） |
+| **通知与媒体** | 通知标题/内容/大文本/多行、RemoteViews 桌面小组件、**音乐元数据**（歌名/歌手/专辑）、**长按图标快捷菜单** |
 | **导航与标签** | TabLayout、TabHost、BottomNavigationView、NavigationView、ViewPager 标题 |
 | **选择器** | DatePicker、TimePicker、NumberPicker |
 | **开关类** | Switch / SwitchCompat / ToggleButton 的开与关文字 |
 | **列表** | RecyclerView、ListView 等各类 Adapter、Spinner、AutoCompleteTextView |
 | **输入** | TextInputLayout 浮动提示、SearchView 提示、TextSwitcher |
-| **系统入口** | **Resources.getText / getQuantityText**（资源字符串源头，一处 Hook 全局覆盖）、菜单、通知（含 BigText / InboxStyle / Ticker）、RemoteViews 桌面小组件 |
-| **H5 页面** | 系统 WebView（DOM 注入 + MutationObserver 动态监听）、腾讯 X5/TBS、UC U4 内核 |
+| **富文本** | SpannableStringBuilder.append / replace（聊天、评论、弹幕） |
+| **系统入口** | **Resources.getText / getQuantityText**、**Resources.getString（深度模式）**、菜单、Notification |
+| **H5 页面** | 系统 WebView（DOM + MutationObserver）、腾讯 X5/TBS、UC U4；支持文本节点、`placeholder`、按钮 `value`、页面 `title`、`img alt`、`title`/`aria-label`、同源 iframe |
 | **跨端框架** | Jetpack Compose（AnnotatedString + Builder.append）、Taro 跨端文本 |
 | **大厂自绘** | 淘宝 DinamicX（FastText 系列）、京东 Silk（TNTextView / TNRichText）、淘宝底部导航 |
-| **自绘兜底** | Canvas.drawText 全系列、StaticLayout、自绘控件自动探测 |
+| **自绘兜底** | Canvas.drawText 全系列、StaticLayout、PrecomputedText（Android 9+ 预计算文本）、自绘控件自动探测 |
 | **无障碍** | View.setContentDescription（部分应用用它显示文字） |
 | **应用名称** | ApplicationInfo.loadLabel / PackageManager.getApplicationLabel（桌面图标名、"关于"页） |
 
@@ -116,9 +120,9 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
    - 从 [Releases](../../releases) 下载最新 APK 安装
 2. **激活模块**
    - 打开 LSPosed 管理器 → 模块列表 → 勾选启用 GText
-3. **授权 Root（建议）**
-   - 在 KernelSU / Magisk 管理器中授予 GText Root 权限
-   - 原因：模块需要把规则写入系统目录 `/data/local/tmp` 供目标应用跨进程读取；未授权时写入可能失败导致规则不生效
+3. **授权 Root（建议但非必需）**
+   - 规则同步优先使用 LSPosed 官方服务通道，无需 Root 即可工作
+   - 授权 Root 可额外启用：tmp 兜底写入、「重启该应用」功能
 4. **配置作用域**
    - 在 GText 中添加应用时会**自动弹出 LSPosed 作用域申请**，一键确认即可
    - 也可稍后在 LSPosed 中手动勾选
@@ -145,10 +149,37 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 | 编辑 / 删除 | 规则卡片右侧按钮 |
 | 搜索 | 各页顶部搜索框；主页支持拼音/首字母 |
 | 去重保护 | 添加重复原文时询问「覆盖 / 仍然添加」 |
+| 批量操作 | 规则页菜单 →「批量操作」：全部启用 / 全部停用 / 删除已停用的规则 / 清空所有规则 |
+
+### 替换范围（每应用通道开关）
+
+应用规则页菜单 →「替换范围」，可分别控制该应用哪些类别参与替换：
+
+| 范围 | 覆盖内容 |
+|------|----------|
+| 文字界面 | 文本框、标题、对话框等常规文字 |
+| 菜单与列表弹窗 | 下拉菜单、悬浮菜单、列表式弹窗条目 |
+| 通知、媒体、快捷菜单 | 通知文字、歌名歌手、长按图标菜单 |
+| 网页 H5 | 网页文本、输入框提示、页面标题 |
+| 自绘文字 | Canvas 绘制的文字等 |
+
+默认全部开启。某类文字导致异常时可单独关闭；**改动需重启目标应用**才完全生效（Hook 按范围安装）。
+
+### 设置页
+
+右上角菜单 →「**设置**」，集中管理全部开关与数据操作：
+
+| 分区 | 内容 |
+|------|------|
+| 生效设置 | **暂停全部替换**（与下拉磁贴双向同步）、**启动时显示激活提示**、**深度模式** |
+| 数据管理 | **备份配置**、**恢复配置** |
+| 其他 | **使用说明**、**关于 GText**（版本号、作者链接、当前服务通道状态） |
+
+> **深度模式**（默认开启）：额外拦截 `Resources.getString` 等资源字符串入口，能覆盖更多界面文字。它会更深地介入应用逻辑，个别应用如出现显示或参数异常，先关闭它并重启应用。
 
 ### 全局规则
 
-主菜单 →「全局规则」：对所有**已添加且未停用**的应用统一生效，适合替换多个应用中相同的文字。
+主页顶部「**全局规则 · N 条**」快捷入口：对所有**已添加且未停用**的应用统一生效，适合替换多个应用中相同的文字。
 > 只在 GText 中添加过的应用才会应用全局规则；仅勾选 LSPosed 作用域但未添加的应用不会被替换。
 
 ### 屏幕取词
@@ -164,7 +195,7 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 
 ### 应用改名
 
-主菜单 →「应用改名」→ 选择应用 → 输入新名称。
+主页顶部「**应用改名 · N 个**」快捷入口 → 选择应用 → 输入新名称。
 
 桌面图标名称、应用内"关于"页等读取应用名的地方都会生效。**LSPosed 作用域需要同时勾选**：
 - 「系统桌面 / 桌面启动器」→ 桌面图标名称生效
@@ -186,13 +217,13 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 
 ### 备份 / 恢复
 
-主菜单 →「备份配置」导出全部规则、应用改名与设置为文件；「恢复配置」一键还原。换机、重装或重置 LSPosed 后使用。
+设置页 →「备份配置」导出全部规则、应用改名与设置为文件；「恢复配置」一键还原。换机、重装或重置 LSPosed 后使用。
 
 ### 排查"为什么没替换"
 
-1. **替换统计**（主菜单）：查看各应用替换/检测次数与最近替换样本（数据约 16 秒回传一次）
-2. **无效规则**：无效正则被自动忽略，并显示在对应应用的统计卡片上
-3. **快速自测**：规则页菜单 →「替换测试」，输入文字即时预览替换结果
+1. **检查替换范围**：规则页菜单 →「替换范围」，确认该类文字所在的通道（菜单 / 通知 / H5 / 自绘）没有被关闭
+2. **开启深度模式**：设置页 →「深度模式」打开，重启目标应用后再试（覆盖资源字符串入口）
+3. **无效规则**：无效正则在保存时即会提示，被忽略的规则不会生效，注意检查语法
 
 ---
 
@@ -201,11 +232,29 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 | 问题 | 解决方案 |
 |------|----------|
 | 规则不生效 | 检查 LSPosed 作用域是否勾选；规则是否启用；等几秒让热更新生效，或重启目标应用 |
-| 设置/开关不生效 | 在 KernelSU / Magisk 中给 GText 授予 Root 权限（规则中转文件需要写入系统目录） |
+| 设置/开关不生效 | 重新打开一次 GText（会自动通过 LSPosed 服务通道同步）；或给 GText 授权 Root 启用 tmp 兜底通道 |
 | 应用闪退 | 停用该应用总开关排查；删除最近添加的规则 |
-| 某个页面怎么都不替换 | 参见[支持范围](#支持范围)——若页面由 Flutter/游戏引擎自绘则无法替换；用替换测试验证规则本身 |
+| 某个页面怎么都不替换 | 先查「替换范围」是否关闭了对应通道；再开「深度模式」并重启应用；若为 Flutter/游戏引擎自绘则无法替换（见[支持范围](#支持范围)） |
 | 桌面图标名称没变 | 确认 LSPosed 已勾选「系统桌面」作用域；滑动桌面刷新或重启桌面 |
-| 规则提示不想要了 | 主菜单 →「规则提示」关闭 |
+| 不想看到启动提示 | 设置页 →「启动时显示激活提示」关闭 |
+| 应用出现异常/参数错乱 | 关闭「深度模式」；或调小该应用的「替换范围」，然后重启该应用 |
+
+---
+
+## 数据同步机制
+
+GText 在应用与 Hook 端之间同步规则有多条通道，Hook 端启动时**自动探测并选择**可用通道：
+
+| 优先级 | 通道 | 说明 |
+|--------|------|------|
+| 1 | **LSPosed 远程偏好**（官方服务） | 应用侧通过 XposedService 推送全部规则与设置，Hook 端读取；不怕清理软件、免 Root，**推荐主通道** |
+| 2 | 模块 prefs 文件 | 兼容备用通道 |
+| 3 | `/data/local/tmp` 镜像文件 | 兜底通道；目录对应用只读，创建新文件需要 Root，且可能被清理软件删除 |
+
+说明：
+
+- 规则、全局规则、应用改名、各类开关（含替换范围、深度模式）均会实时同步到远程通道，修改后几秒内生效
+- 因此仍建议给 GText 授权 Root：兜底通道写入、「重启该应用」功能依赖 Root；不授权也能正常使用替换
 
 ---
 
@@ -213,7 +262,8 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 
 - 规则按首字符索引 + 结果缓存匹配，UI 渲染时替换，运行时开销可忽略
 - 热更新轮询为 3 秒一次的文件签名检查（读取修改时间），几乎零开销
-- 统计回传约 16 秒一次小文件写入，可忽略
+- Hook 按「替换范围」选择性安装：关闭 H5 / 自绘等类别时，对应 Hook 完全不安装，进一步降低开销
+- 深度模式默认开启；如需极致轻量或遇到兼容问题，可在设置页关闭
 - 全局规则只对已添加应用生效，未添加的应用零开销
 
 ---
@@ -235,12 +285,12 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 - [LSPosed](https://github.com/LSPosed/LSPosed)
 - [libxposed-api](https://github.com/libxposed/api)
 - [Material Design 3](https://m3.material.io/)
-- [TinyPinyin](https://github.com/promeg/TinyPinyin)
 
 ---
 
 <div align="center">
 
+**作者：[闪退哥（酷安）](https://www.coolapk.com/u/5628726)**
 
 **如果这个项目对你有帮助，请给一个 ⭐ Star 支持一下！**
 
