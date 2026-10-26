@@ -6,7 +6,7 @@
 
 基于 libxposed API 102 · Kotlin + Material Design 3
 
-[酷安：@闪退哥](https://www.coolapk.com/u/5628726)
+[酷安：闪退哥](https://www.coolapk.com/u/5628726)
 
 </div>
 
