@@ -6,7 +6,7 @@
 
 基于 libxposed API 102 · Kotlin + Material Design 3
 
-[酷安：闪退哥](https://www.coolapk.com/u/5628726)
+[酷安：@闪退哥](https://www.coolapk.com/u/5628726)
 
 </div>
 
@@ -24,7 +24,6 @@
 - [数据同步机制](#数据同步机制)
 - [性能说明](#性能说明)
 - [法律风险与免责声明](#法律风险与免责声明)
-- [致谢](#致谢)
 
 ---
 
@@ -49,7 +48,12 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 | 🧹 **批量操作** | 一键全部启用 / 全部停用 / 清理停用规则 / 清空规则 |
 | 🚫 **一键暂停** | 快捷设置磁贴暂停/恢复全部替换，几秒生效 |
 | 🔀 **优先级排序** | 长按拖拽调整规则顺序，控制先替换谁 |
-| 🔍 **拼音搜索** | 主页支持全拼/首字母搜索（搜 "jd" 找到"京东"） |
+| 🔍 **拼音搜索** | 主页支持全拼/首字母搜索（搜 "jd" 找到"京东"），命中高亮 |
+| 🔬 **页面自检** | 分析当前页面渲染方式（原生 / H5 / Compose / Flutter），直接判断能否替换 |
+| 🅰 **字母分组** | 首页按拼音首字母分组，右侧字母条快速定位 |
+| 🎨 **替换样式** | 单条规则可设粗体 / 斜体 / 红色 |
+| 🕒 **动态变量** | 替换文支持 `{date}` `{time}` `{datetime}` `{random}` |
+| 🔢 **捕获组** | 正则替换支持 `$1`~`$9` 引用分组 |
 | 💾 **备份恢复** | 全部规则、改名与设置一键备份还原 |
 | 🔁 **重启应用** | Root 下重启桌面/系统界面等系统应用，无需重启手机 |
 | 🚫 **生效范围可控** | 单条规则开关、单应用总开关，全局规则只对已添加应用生效 |
@@ -86,15 +90,19 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 | **弹窗提示** | AlertDialog、MaterialAlertDialog、Snackbar、Toast、PopupMenu、Tooltip |
 | **列表式弹窗** | AlertDialog.Builder.setItems / setSingleChoiceItems / setMultiChoiceItems 的选项条目 |
 | **菜单项** | MenuItem.setTitle 全系列、Menu.add(group,id,order,title)（下拉/悬浮/设置菜单文字） |
-| **通知与媒体** | 通知标题/内容/大文本/多行、RemoteViews 桌面小组件、**音乐元数据**（歌名/歌手/专辑）、**长按图标快捷菜单** |
+| **提示条** | Snackbar 文本与操作按钮、Toast、长按提示气泡（setTooltipText） |
+| **搜索框** | SearchView 提示语与查询提示 |
+| **系统零散** | 快捷设置磁贴标签（Tile.setLabel）、视频软字幕（SubtitleTrack）、WebView loadData 的 HTML 文本（受「网页 H5」通道开关控制） |
+| **副标题** | Toolbar / ActionBar setSubtitle |
+| **通知与媒体** | 通知标题/内容/大文本/多行（InboxStyle、BigTextStyle）、摘要与内容信息、**聊天式通知**（MessagingStyle 消息与发送人）、RemoteViews 桌面小组件与描述、**音乐元数据**（歌名/歌手/专辑）与**媒体按钮文字**、**长按图标快捷菜单** |
 | **导航与标签** | TabLayout、TabHost、BottomNavigationView、NavigationView、ViewPager 标题 |
 | **选择器** | DatePicker、TimePicker、NumberPicker |
 | **开关类** | Switch / SwitchCompat / ToggleButton 的开与关文字 |
 | **列表** | RecyclerView、ListView 等各类 Adapter、Spinner、AutoCompleteTextView |
 | **输入** | TextInputLayout 浮动提示、SearchView 提示、TextSwitcher |
 | **富文本** | SpannableStringBuilder.append / replace（聊天、评论、弹幕） |
-| **系统入口** | **Resources.getText / getQuantityText**、**Resources.getString（深度模式）**、菜单、Notification |
-| **H5 页面** | 系统 WebView（DOM + MutationObserver）、腾讯 X5/TBS、UC U4；支持文本节点、`placeholder`、按钮 `value`、页面 `title`、`img alt`、`title`/`aria-label`、同源 iframe |
+| **系统入口** | **Resources.getText / getQuantityText**、**getString（深度模式）**、**getStringArray / getTextArray**、菜单、Notification |
+| **H5 页面** | 系统 WebView（DOM + MutationObserver + **Shadow DOM**）、腾讯 X5/TBS、UC U4；支持文本节点、`placeholder`（含 textarea）、按钮/选项 `value`、页面 `title`、`img alt`、`title`/`aria-label`、同源 iframe、**WebChromeClient 标题回填** |
 | **跨端框架** | Jetpack Compose（AnnotatedString + Builder.append）、Taro 跨端文本 |
 | **大厂自绘** | 淘宝 DinamicX（FastText 系列）、京东 Silk（TNTextView / TNRichText）、淘宝底部导航 |
 | **自绘兜底** | Canvas.drawText 全系列、StaticLayout、PrecomputedText（Android 9+ 预计算文本）、自绘控件自动探测 |
@@ -139,6 +147,18 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 4. 按需开启 **正则表达式** / **忽略大小写** 开关
 5. 保存后**几秒内自动生效**（热更新），无需重启应用
 
+**替换文支持的语法**
+
+| 语法 | 说明 | 示例 |
+|------|------|------|
+| `$1`~`$9` | 正则捕获组引用 | 原文 `(\d+)元` → 替换文 `$1元红包` |
+| `{date}` | 当前日期 | `2026-10-28` |
+| `{time}` | 当前时间 | `20:15` |
+| `{datetime}` | 日期 + 时间 | `2026-10-28 20:15` |
+| `{random}` | 随机四位数 | `3167` |
+
+**替换样式**：规则编辑页可选择「默认 / 粗体 / 斜体 / 红色」，让替换后的文字有视觉强调。
+
 ### 管理规则
 
 | 操作 | 方式 |
@@ -150,6 +170,9 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 | 搜索 | 各页顶部搜索框；主页支持拼音/首字母 |
 | 去重保护 | 添加重复原文时询问「覆盖 / 仍然添加」 |
 | 批量操作 | 规则页菜单 →「批量操作」：全部启用 / 全部停用 / 删除已停用的规则 / 清空所有规则 |
+| 长按卡片 | 复制该条规则原文 |
+| 撤销删除 | 删除规则 / 应用后，底部提示条点「撤销」恢复 |
+| 搜索高亮 | 规则列表搜索时命中文字高亮 |
 
 ### 替换范围（每应用通道开关）
 
@@ -171,16 +194,23 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 
 | 分区 | 内容 |
 |------|------|
+| 替换管理 | **全局规则**（显示条数）、**应用改名**（显示个数） |
 | 生效设置 | **暂停全部替换**（与下拉磁贴双向同步）、**启动时显示激活提示**、**深度模式** |
 | 数据管理 | **备份配置**、**恢复配置** |
-| 其他 | **使用说明**、**关于 GText**（版本号、作者链接、当前服务通道状态） |
+| 其他 | **使用说明**、**关于 GText**（版本号、作者链接） |
+
+> 首页顶部只有一行信息：左侧统计（应用 / 规则 / 全局），右侧三个状态圆点（**通道** / **取词** / **Root**），绿色正常、红色异常，**点击圆点可查看该项说明**。搜索框默认收起，点工具栏放大镜展开。
 
 > **深度模式**（默认开启）：额外拦截 `Resources.getString` 等资源字符串入口，能覆盖更多界面文字。它会更深地介入应用逻辑，个别应用如出现显示或参数异常，先关闭它并重启应用。
 
 ### 全局规则
 
-主页顶部「**全局规则 · N 条**」快捷入口：对所有**已添加且未停用**的应用统一生效，适合替换多个应用中相同的文字。
+设置页 → 替换管理 →「全局规则」：对所有**已添加且未停用**的应用统一生效，适合替换多个应用中相同的文字。
 > 只在 GText 中添加过的应用才会应用全局规则；仅勾选 LSPosed 作用域但未添加的应用不会被替换。
+
+### 页面自检
+
+规则页菜单 →「页面自检」→ 切到目标应用 → 点顶部「自检」：自动统计页面节点与特征（WebView / ComposeView / FlutterView / SurfaceView 等），给出「能否替换 + 应走哪条通道」的结论，用于排查"这个页面为什么改不了"。
 
 ### 屏幕取词
 
@@ -193,9 +223,11 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 
 > 只能读取系统无障碍接口可见的文字，部分自绘界面可能读不到。
 
+**取词服务自动恢复**：Android / MIUI 在应用被强行停止（划掉最近任务）后会自动关闭其无障碍服务（系统行为）。授予 GText **Root** 后，打开 GText 或使用取词时会通过 Root 自动重新启用该服务，无需再手动去无障碍设置授权。未授权 Root 时可将其锁定在最近任务、省电策略设为「无限制」以减少被关闭。
+
 ### 应用改名
 
-主页顶部「**应用改名 · N 个**」快捷入口 → 选择应用 → 输入新名称。
+设置页 → 替换管理 →「应用改名」→ 选择应用 → 输入新名称。
 
 桌面图标名称、应用内"关于"页等读取应用名的地方都会生效。**LSPosed 作用域需要同时勾选**：
 - 「系统桌面 / 桌面启动器」→ 桌面图标名称生效
@@ -238,6 +270,7 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 | 桌面图标名称没变 | 确认 LSPosed 已勾选「系统桌面」作用域；滑动桌面刷新或重启桌面 |
 | 不想看到启动提示 | 设置页 →「启动时显示激活提示」关闭 |
 | 应用出现异常/参数错乱 | 关闭「深度模式」；或调小该应用的「替换范围」，然后重启该应用 |
+| 划掉后台后无障碍授权丢失 | 这是 Android/MIUI 的系统行为（应用被强停后其无障碍服务会被关闭）。给 GText 授权 Root 后会自动恢复，无需手动开启 |
 
 ---
 
@@ -254,6 +287,7 @@ GText 在应用与 Hook 端之间同步规则有多条通道，Hook 端启动时
 说明：
 
 - 规则、全局规则、应用改名、各类开关（含替换范围、深度模式）均会实时同步到远程通道，修改后几秒内生效
+- **首页顶部「通道」状态 = 第 1 条通道是否已连接**：绿色已连接（推荐）；红色未连接时自动退回第 3 条兜底通道，替换通常仍可用，但文件被清理或未授权 Root 时会失效
 - 因此仍建议给 GText 授权 Root：兜底通道写入、「重启该应用」功能依赖 Root；不授权也能正常使用替换
 
 ---
@@ -265,6 +299,8 @@ GText 在应用与 Hook 端之间同步规则有多条通道，Hook 端启动时
 - Hook 按「替换范围」选择性安装：关闭 H5 / 自绘等类别时，对应 Hook 完全不安装，进一步降低开销
 - 深度模式默认开启；如需极致轻量或遇到兼容问题，可在设置页关闭
 - 全局规则只对已添加应用生效，未添加的应用零开销
+- 单条替换结果超过 500 字会自动截断，避免超长文本破坏页面布局
+- 替换文含 `{date}` 等动态变量时不做结果缓存，保证日期/随机数实时刷新
 
 ---
 
@@ -277,14 +313,6 @@ GText 在应用与 Hook 端之间同步规则有多条通道，Hook 端启动时
 3. **禁止用途**：严禁将本软件用于欺诈、诈骗、造谣等任何违法活动；替换的只是**显示文字**（例如改了商品价格，下单实际仍按原价支付）
 4. **无担保**：本软件按"原样"提供，不对任何直接或间接损失负责；使用产生的所有风险由用户自行承担
 5. **合规使用**：请遵守所在地区法律法规
-
----
-
-## 致谢
-
-- [LSPosed](https://github.com/LSPosed/LSPosed)
-- [libxposed-api](https://github.com/libxposed/api)
-- [Material Design 3](https://m3.material.io/)
 
 ---
 
