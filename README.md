@@ -6,7 +6,7 @@
 
 基于 libxposed API 102 · Kotlin + Material Design 3
 
-[酷安：@闪退哥](https://www.coolapk.com/u/5628726)
+[酷安：@闪退哥](https://www.coolapk.com/u/5628726) · [GitHub](https://github.com/comewhy/com.comewhy.gtext) · [Telegram：@comewhyBot](https://t.me/comewhyBot)
 
 </div>
 
@@ -49,6 +49,7 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 | 🚫 **一键暂停** | 快捷设置磁贴暂停/恢复全部替换，几秒生效 |
 | 🔀 **优先级排序** | 长按拖拽调整规则顺序，控制先替换谁 |
 | 🔍 **拼音搜索** | 主页支持全拼/首字母搜索（搜 "jd" 找到"京东"），命中高亮 |
+| 🔄 **检查更新** | 读取 GitHub 最新 Release 并展示版本、附件与更新日志；启动时 6 小时自动检查一次 |
 | 🔬 **页面自检** | 分析当前页面渲染方式（原生 / H5 / Compose / Flutter），直接判断能否替换 |
 | 🅰 **字母分组** | 首页按拼音首字母分组，右侧字母条快速定位 |
 | 🎨 **替换样式** | 单条规则可设粗体 / 斜体 / 红色 |
@@ -93,6 +94,8 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 | **提示条** | Snackbar 文本与操作按钮、Toast、长按提示气泡（setTooltipText） |
 | **搜索框** | SearchView 提示语与查询提示 |
 | **系统零散** | 快捷设置磁贴标签（Tile.setLabel）、视频软字幕（SubtitleTrack）、WebView loadData 的 HTML 文本（受「网页 H5」通道开关控制） |
+| **播放器字幕** | ExoPlayer / Media3 `SubtitleView` 软字幕 |
+| **设置页控件** | androidx Preference 标题与摘要、TextInputLayout 计数器/前后缀/占位/错误提示、MaterialDatePicker 标题 |
 | **副标题** | Toolbar / ActionBar setSubtitle |
 | **通知与媒体** | 通知标题/内容/大文本/多行（InboxStyle、BigTextStyle）、摘要与内容信息、**聊天式通知**（MessagingStyle 消息与发送人）、RemoteViews 桌面小组件与描述、**音乐元数据**（歌名/歌手/专辑）与**媒体按钮文字**、**长按图标快捷菜单** |
 | **导航与标签** | TabLayout、TabHost、BottomNavigationView、NavigationView、ViewPager 标题 |
@@ -105,9 +108,9 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 | **H5 页面** | 系统 WebView（DOM + MutationObserver + **Shadow DOM**）、腾讯 X5/TBS、UC U4；支持文本节点、`placeholder`（含 textarea）、按钮/选项 `value`、页面 `title`、`img alt`、`title`/`aria-label`、同源 iframe、**WebChromeClient 标题回填** |
 | **跨端框架** | Jetpack Compose（AnnotatedString + Builder.append）、Taro 跨端文本 |
 | **大厂自绘** | 淘宝 DinamicX（FastText 系列）、京东 Silk（TNTextView / TNRichText）、淘宝底部导航 |
-| **自绘兜底** | Canvas.drawText 全系列、StaticLayout、PrecomputedText（Android 9+ 预计算文本）、自绘控件自动探测 |
+| **自绘兜底** | Canvas.drawText 全系列、StaticLayout、BoringLayout（单行自绘）、TextUtils.ellipsize（省略文本）、PrecomputedText（Android 9+ 预计算文本）、自绘控件自动探测 |
 | **无障碍** | View.setContentDescription（部分应用用它显示文字） |
-| **应用名称** | ApplicationInfo.loadLabel / PackageManager.getApplicationLabel（桌面图标名、"关于"页） |
+| **应用名称** | ApplicationInfo.loadLabel / PackageManager.getApplicationLabel（桌面图标名、"关于"页）、PackageItemInfo.loadLabel（最近任务、系统设置中的应用名）、TaskDescription 标题（最近任务卡片） |
 
 ### ❌ 架构上无法覆盖
 
@@ -156,8 +159,13 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 | `{time}` | 当前时间 | `20:15` |
 | `{datetime}` | 日期 + 时间 | `2026-10-28 20:15` |
 | `{random}` | 随机四位数 | `3167` |
+| `{date:格式}` | 自定义日期格式 | `{date:yyyy年M月d日}` → `2026年10月28日` |
+| `{time:格式}` | 自定义时间格式 | `{time:HH:mm:ss}` → `20:15:03` |
+| `{datetime:格式}` | 自定义日期时间格式 | `{datetime:MM/dd HH:mm}` → `10/28 20:15` |
 
 **替换样式**：规则编辑页可选择「默认 / 粗体 / 斜体 / 红色」，让替换后的文字有视觉强调。
+
+**宽松匹配（自动兜底）**：有些页面文字"看起来一样却匹配不上"，通常是夹带了零宽字符、全角/半角混排或 NBSP 空格。GText 会先用原文正常匹配，**只有在原文完全没命中时**才做一次归一化（去零宽、统一全半角与空格）再匹配一次，命中后按字符位置映射回原文替换。原本能命中的规则行为完全不变，也不产生额外开销。
 
 ### 管理规则
 
@@ -197,7 +205,7 @@ GText 是一款基于 LSPosed 框架的 Android 文字替换模块：把其他�
 | 替换管理 | **全局规则**（显示条数）、**应用改名**（显示个数） |
 | 生效设置 | **暂停全部替换**（与下拉磁贴双向同步）、**启动时显示激活提示**、**深度模式** |
 | 数据管理 | **备份配置**、**恢复配置** |
-| 其他 | **使用说明**、**关于 GText**（版本号、作者链接） |
+| 其他 | **检查更新**（读取 GitHub 最新版本，含更新日志与下载入口）、**关于 GText**（版本号、作者链接） |
 
 > 首页顶部只有一行信息：左侧统计（应用 / 规则 / 全局），右侧三个状态圆点（**通道** / **取词** / **Root**），绿色正常、红色异常，**点击圆点可查看该项说明**。搜索框默认收起，点工具栏放大镜展开。
 
@@ -318,7 +326,7 @@ GText 在应用与 Hook 端之间同步规则有多条通道，Hook 端启动时
 
 <div align="center">
 
-**作者：[闪退哥（酷安）](https://www.coolapk.com/u/5628726)**
+**作者：[闪退哥（酷安）](https://www.coolapk.com/u/5628726) · [GitHub](https://github.com/comewhy/com.comewhy.gtext) · [Telegram](https://t.me/comewhyBot)**
 
 **如果这个项目对你有帮助，请给一个 ⭐ Star 支持一下！**
 
